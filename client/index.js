@@ -7,16 +7,15 @@ const playerListDiv = document.getElementById('playerList');
 const startGameBtn = document.getElementById('startGameBtn');
 const marcoBtn = document.getElementById('marcoBtn');
 const poloBtn = document.getElementById('poloBtn');
+const gameProcessDiv = document.getElementById('game-process');
 
+// Evento de login
 formLogin.addEventListener('submit', (event) => {
 	event.preventDefault();
 	const namePlayer = document.getElementById('name').value;
 
 	// Emitir evento de login
-	socket.emit('Client:Login', {
-		name: namePlayer,
-		role: 'player',
-	});
+	socket.emit('Client:Login', { name: namePlayer });
 
 	localStorage.setItem('login', namePlayer);
 	divLogin.style.display = 'none';
@@ -40,12 +39,21 @@ startGameBtn.addEventListener('click', () => {
 	socket.emit('startGame');
 });
 
-socket.on('assignRoles', ({ marco, specialPolo }) => {
-	alert(`Marco es ${marco.name} y uno de los Polos es especial.`);
-	if (socket.id === marco.id) {
-		marcoBtn.style.display = 'block';
+// Recibir el rol asignado y actualizar la interfaz de forma privada
+socket.on('roleAssigned', ({ role }) => {
+	divStart.classList.add('hidden');
+	gameProcessDiv.classList.remove('hidden'); // Mostrar la interfaz de juego
+
+	// Mostrar el botón correcto basado en el rol recibido
+	if (role === 'Marco') {
+		document.getElementById('marcoBtn').style.display = 'block';
+		alert('Tú eres "MARCO"'); // Solo el Marco verá este mensaje
+	} else if (role === 'PoloEspecial') {
+		document.getElementById('poloBtn').style.display = 'block';
+		alert('Tú eres el "POLO Especial"'); // Solo el Polo Especial verá este mensaje
 	} else {
-		poloBtn.style.display = 'block';
+		document.getElementById('poloBtn').style.display = 'block';
+		alert('Tú eres "POLO"'); // Los demás jugadores verán este mensaje
 	}
 });
 
@@ -55,24 +63,22 @@ marcoBtn.addEventListener('click', () => {
 });
 
 poloBtn.addEventListener('click', () => {
-	socket.emit('poloYell', socket.id);
+	socket.emit('poloYell');
 });
 
+// Notificaciones de gritos Marco o Polo
 socket.on('marcoYelled', () => {
 	alert('Marco ha gritado');
 });
 
-socket.on('poloYelled', (poloPlayer) => {
-	alert(`${poloPlayer.name} ha gritado Polo`);
+// Notificación genérica para los Polos
+socket.on('poloYelled', () => {
+	alert('¡Polo ha gritado!');
 });
 
 socket.on('gameOver', (message) => {
 	alert(message);
 	location.reload(); // Reinicia el juego
-});
-
-socket.on('rolesUpdated', ({ marco, selectedPolo }) => {
-	alert(`${selectedPolo.name} es ahora Marco.`);
 });
 
 socket.on('errorMessage', (message) => {
