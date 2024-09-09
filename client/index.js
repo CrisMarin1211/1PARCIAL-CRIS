@@ -1,46 +1,39 @@
-let socket = io('http://localhost:5050', { path: '/real-time' });
+const socket = io('http://localhost:5050', { path: '/real-time' });
 
 const divLogin = document.getElementById('div-login');
-const formGame = document.getElementById('form-login');
-const divStar = document.getElementById('div-start');
-
-formGame.addEventListener('submit', (event) => {
-	event.preventDefault();
-	const namePlayer = document.getElementById('name');
-	socket.emit('Client:Login', {
-		name: namePlayer.value,
-		role: 'player',
-	});
-	localStorage.setItem('login', namePlayer.value);
-	('Login successful');
-	divLogin.style.display = 'none';
-	namePlayer.value = '';
-	divStar.style.display = 'block';
-});
-
-divStar.innerHTML = 'Waiting for the game to start';
-socket.on('waiting-to-start', (message) => {
-	divInitGame.innerHTML = message;
-});
-
+const formLogin = document.getElementById('form-login');
+const divStart = document.getElementById('div-start');
 const playerListDiv = document.getElementById('playerList');
 const startGameBtn = document.getElementById('startGameBtn');
 const marcoBtn = document.getElementById('marcoBtn');
 const poloBtn = document.getElementById('poloBtn');
 
+formLogin.addEventListener('submit', (event) => {
+	event.preventDefault();
+	const namePlayer = document.getElementById('name').value;
+
+	// Emitir evento de login
+	socket.emit('Client:Login', {
+		name: namePlayer,
+		role: 'player',
+	});
+
+	localStorage.setItem('login', namePlayer);
+	divLogin.style.display = 'none';
+	divStart.classList.remove('hidden'); // Muestra la pantalla de jugadores
+});
+
 socket.on('updatePlayers', (players) => {
-	playerListDiv.innerHTML = '';
+	playerListDiv.innerHTML = ''; // Limpiar lista de jugadores
+
 	players.forEach((player) => {
 		const playerElement = document.createElement('div');
 		playerElement.textContent = player.name;
 		playerListDiv.appendChild(playerElement);
 	});
 
-	if (players.length >= 3) {
-		startGameBtn.style.display = 'block';
-	} else {
-		startGameBtn.style.display = 'none';
-	}
+	// Mostrar el botón de inicio solo si hay 3 o más jugadores
+	startGameBtn.style.display = players.length >= 3 ? 'block' : 'none';
 });
 
 startGameBtn.addEventListener('click', () => {
@@ -56,6 +49,7 @@ socket.on('assignRoles', ({ marco, specialPolo }) => {
 	}
 });
 
+// Eventos para gritar Marco o Polo
 marcoBtn.addEventListener('click', () => {
 	socket.emit('marcoYell');
 });
@@ -74,7 +68,7 @@ socket.on('poloYelled', (poloPlayer) => {
 
 socket.on('gameOver', (message) => {
 	alert(message);
-	location.reload(); // Recargar la página para reiniciar el juego
+	location.reload(); // Reinicia el juego
 });
 
 socket.on('rolesUpdated', ({ marco, selectedPolo }) => {

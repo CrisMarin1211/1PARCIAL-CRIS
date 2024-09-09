@@ -1,15 +1,19 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+const cors = require('cors');
+const { createServer } = require('http');
+const { Server } = require('socket.io');
 
-const app = express(); // Creates HTTP server
-const server = http.createServer(app);
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+const httpServer = createServer(app);
 const io = new Server(httpServer, {
 	path: '/real-time',
 	cors: {
-		origin: '*', // Allow requests from any origin
+		origin: '*',
 	},
-}); // Creates a WebSocket server, using the same HTTP server as the Express app and listening on the /real-time path
+});
 
 let players = [];
 let marco = null;
@@ -27,9 +31,11 @@ function assignRoles() {
 io.on('connection', (socket) => {
 	console.log('Jugador conectado:', socket.id);
 
-	// nuevo jugador
-	players.push({ id: socket.id, name: `Jugador ${players.length + 1}`, role: 'Polo' });
-	io.emit('updatePlayers', players);
+	socket.on('Client:Login', ({ name, role }) => {
+		const newPlayer = { id: socket.id, name, role: 'Polo' };
+		players.push(newPlayer);
+		io.emit('updatePlayers', players);
+	});
 
 	socket.on('disconnect', () => {
 		players = players.filter((player) => player.id !== socket.id);
@@ -37,7 +43,6 @@ io.on('connection', (socket) => {
 		console.log('Jugador desconectado:', socket.id);
 	});
 
-	// iniciar juego 3 o mas jugadores
 	socket.on('startGame', () => {
 		if (players.length >= 3) {
 			assignRoles();
@@ -61,7 +66,6 @@ io.on('connection', (socket) => {
 		if (selectedPolo.id === specialPolo.id) {
 			io.emit('gameOver', 'Marco ha ganado seleccionando el Polo Especial.');
 		} else {
-			// Cambiar roles entre Marco y el Polo seleccionado
 			marco.role = 'Polo';
 			selectedPolo.role = 'Marco';
 			marco = selectedPolo;
@@ -70,11 +74,6 @@ io.on('connection', (socket) => {
 	});
 });
 
-// server.listen(3000, () => {
-//     console.log('Servidor corriendo en el puerto 3000');
-// });
-
 httpServer.listen(5050, () => {
-	// Starts the server on port 5050, same as before but now we are using the httpServer object
-	console.log(`Server is running on http://localhost:${5050}`);
+	console.log('Servidor escuchando en http://localhost:5050');
 });
